@@ -88,7 +88,7 @@ input,textarea{width:100%;background:var(--panel);border:1px solid var(--line);b
      <div class="notice" style="margin:7px 0 0">Choose an image from your phone or device. JPG, PNG and other browser-supported image formats work.</div>
    </div>
  </div>
- <p class="notice">Keep characters age-appropriate. This demo does not connect to a live AI service.</p>
+ <p class="notice">Keep characters age-appropriate. Characters can remember useful details and their mood can change as you chat.</p>
  <button class="primary" onclick="createCharacter()">Create character</button><button class="secondary" onclick="show('discover')">Cancel</button>
 </section>
 <section id="profile" class="view">
@@ -126,7 +126,7 @@ const starter=[
 let characters=[...starter], selected=null, chats={}, pendingPhoto="";
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function save(){try{localStorage.setItem('chara-ai-demo',JSON.stringify({characters,chats}));}catch(e){}}
-function load(){try{let d=JSON.parse(localStorage.getItem('chara-ai-demo'));if(d){characters=d.characters||characters;chats=d.chats||{};}}catch(e){}}
+function load(){try{let d=JSON.parse(localStorage.getItem('chara-ai-demo'));if(d){characters=d.characters||characters;chats=d.chats||{};}}catch(e){}characters.forEach(c=>{if(!Array.isArray(c.memory))c.memory=[];if(typeof c.mood!=='string')c.mood='Neutral';});}
 function renderCharacters(){
  document.getElementById('count').textContent=characters.length+' characters';
  document.getElementById('character-list').innerHTML=characters.map(c=>`<button class="character" onclick="openProfile('${esc(c.id)}')"><div class="avatar ${c.style||''}">${c.photo?`<img src="${c.photo}" alt="">`:esc(c.initial||c.name[0])}</div><div class="character-info"><strong>${esc(c.name)}</strong><div class="tag">${esc(c.tag||'Your creation')}</div><div class="desc">${esc(c.personality)}</div></div><span class="chev">›</span></button>`).join('');
@@ -260,13 +260,16 @@ async function sendMessage(){
    body:JSON.stringify({character:{
     name:selected.name,bio:selected.bio,personality:selected.personality,
     behavior:selected.behavior,reactions:selected.reactions,
-    initiative:selected.initiative,maturity:selected.maturity
+    initiative:selected.initiative,maturity:selected.maturity,
+    memory:selected.memory||[],mood:selected.mood||'Neutral'
    },messages:history})
   });
   const data=await response.json();
   chats[selected.id]=chats[selected.id].filter(m=>m!==typing);
   if(!response.ok)throw new Error(data.error||'The AI request failed.');
   chats[selected.id].push({role:'bot',text:data.reply});
+  if(Array.isArray(data.memory))selected.memory=data.memory;
+  if(typeof data.mood==='string')selected.mood=data.mood;
   save();renderMessages();
  }catch(error){
   chats[selected.id]=chats[selected.id].filter(m=>m!==typing);
