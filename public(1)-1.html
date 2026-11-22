@@ -138,6 +138,11 @@ function renderCharacters(){
  document.getElementById('character-list').innerHTML=characters.map(c=>`<button class="character" onclick="openProfile('${esc(c.id)}')"><div class="avatar ${c.style||''}">${c.photo?`<img src="${c.photo}" alt="">`:esc(c.initial||c.name[0])}</div><div class="character-info"><strong>${esc(c.name)}</strong><div class="tag">${esc(c.tag||'Your creation')}</div><div class="desc">${esc(c.personality)}</div></div><span class="chev">›</span></button>`).join('');
 }
 function show(id){
+ document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+ document.getElementById(id).classList.add('active');
+ document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+ if(id==='discover'||id==='create')document.getElementById('nav-'+id).classList.add('active');
+}
 function searchCharacters(query){
  const q=String(query||'').toLowerCase().trim();
  document.querySelectorAll('#character-list .character').forEach(card=>{card.style.display=!q||card.textContent.toLowerCase().includes(q)?'flex':'none';});
@@ -149,11 +154,6 @@ function searchCharacters(query){
  box.innerHTML=hits.length?'<div class="section-title"><h2>Previous chat matches</h2></div>'+hits.map(x=>'<div class="notice">'+esc(x)+'</div>').join(''):'';
 }
 
- document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
- document.getElementById(id).classList.add('active');
- document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
- if(id==='discover'||id==='create')document.getElementById('nav-'+id).classList.add('active');
-}
 function previewPhoto(event){
  const file=event.target.files&&event.target.files[0];if(!file)return;
  if(!file.type.startsWith('image/')){alert('Please choose an image file.');event.target.value='';return;}
