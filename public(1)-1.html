@@ -240,6 +240,7 @@ function openChat(id){
 }
 function renderMessages(){
  document.getElementById('messages').innerHTML=(chats[selected.id]||[]).map(m=>`<div class="bubble ${m.role==='user'?'user':'bot'}">${esc(m.text)}</div>`).join('');
+ document.getElementById('chat-tag').textContent=(selected.tag||'Your character')+' · Mood: '+(selected.mood||'Neutral')+' · Memories: '+(selected.memory||[]).length;
  document.getElementById('messages').scrollTop=999999;
 }
 const API_BASE='https://amanewbie.onrender.com';
