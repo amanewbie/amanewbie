@@ -69,7 +69,7 @@ app.post("/api/chat", async (req, res) => {
     });
 
     const memories = Array.isArray(character.memory)
-      ? character.memory.slice(-20).map((item) => String(item).slice(0, 240)).join("\\n")
+      ? character.memory.slice(-20).map((item) => String(item).slice(0, 240)).join("\n")
       : "No saved memories yet.";
     const mood = String(character.mood || "Neutral").slice(0, 40);
 
