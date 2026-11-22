@@ -60,7 +60,8 @@ input,textarea{width:100%;background:var(--panel);border:1px solid var(--line);b
 <main>
 <section id="discover" class="view active">
  <div class="hero"><div class="eyebrow">YOUR NEXT STORY STARTS HERE</div><h1>Find a character.<br>Start talking.</h1><p>Explore personalities or create someone entirely new. Your conversations start here.</p></div>
- <div class="section-title"><h2>Discover characters</h2><span class="subtle" id="count">3 characters</span></div>
+ <label class="field-label" for="global-search">SEARCH CHARACTERS & CHATS</label><input id="global-search" type="search" placeholder="Search characters and conversations..." oninput="searchCharacters(this.value)">
+ <div class="section-title"><h2>Discover characters</h2><span class="subtle" id="count">6 characters</span></div>
  <div id="character-list"></div>
  <button class="primary" onclick="show('create')">＋ Create a character</button>
 </section>
@@ -110,7 +111,7 @@ input,textarea{width:100%;background:var(--panel);border:1px solid var(--line);b
  </div>
 </section>
 <section id="chat" class="view" style="margin:-20px -18px 0">
- <div class="chat-head"><button class="back" onclick="show('discover')">‹</button><div class="avatar" id="chat-avatar">K</div><div><strong id="chat-name">Kai</strong><small id="chat-tag">Mysterious · Reserved</small></div></div>
+ <div class="chat-head"><button class="back" onclick="show(&quot;discover&quot;)">‹</button><div class="avatar" id="chat-avatar">K</div><div style="flex:1;min-width:0"><strong id="chat-name">Kai</strong><small id="chat-tag">Mysterious · Reserved</small></div><button class="secondary" style="width:auto;margin:0;padding:9px 11px;font-size:12px" onclick="newChat()">＋ New chat</button></div>
  <div class="messages" id="messages"></div>
  <div class="chat-compose"><textarea id="message-input" rows="1" placeholder="Message your character..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"></textarea><button class="send" onclick="sendMessage()">➤</button></div>
 </section>
@@ -123,15 +124,30 @@ const starter=[
 {id:'luna',name:'Luna',tag:'Cheerful · Curious',creator:'CHARA AI',bio:'An astronomy student who collects strange facts, asks big questions, and loves discovering new things.',behavior:'Greets people warmly, shares interesting discoveries, and tries to include quieter people in conversations.',reactions:'Gets excited by surprises, asks follow-up questions, and admits when she does not know something.',initiative:'proactive',maturity:'general',personality:'An upbeat astronomy student. Curious, witty, supportive, and full of unusual facts.',greeting:'Hey! Quick question: if you could visit any planet, where would you go?',initial:'L',style:'luna'},
 {id:'ren',name:'Ren',tag:'Competitive · Confident',creator:'CHARA AI',bio:'A talented football rival who turns every friendly challenge into a memorable competition.',behavior:'Speaks confidently, enjoys friendly banter, and respects effort even from rivals.',reactions:'Takes a challenge seriously, can disagree about tactics, and learns from a loss instead of pretending it did not happen.',initiative:'proactive',maturity:'general',personality:'A confident football rival who loves tactical debates, friendly competition, and dramatic match stories.',greeting:'So, you’re the one everyone keeps talking about?',initial:'R',style:'ren'}
 ];
-let characters=[...starter], selected=null, chats={}, pendingPhoto="";
+const communityBots=[
+{id:'community-mira',name:'Mira',tag:'Community · Fantasy guide',creator:'CHARA AI Community',bio:'A mapmaker of forgotten kingdoms and hidden roads.',behavior:'Patient, observant, imaginative, and quietly adventurous.',reactions:'Curious about mysteries and celebrates clever solutions.',initiative:'proactive',maturity:'general',personality:'A thoughtful fantasy mapmaker who loves ancient legends and worldbuilding.',greeting:'The map says this road should not exist. Naturally, that is the road I want to take.',initial:'M',style:'',community:true},
+{id:'community-jax',name:'Jax',tag:'Community · Football rival',creator:'CHARA AI Community',bio:'A competitive young footballer who loves tactical debates and dramatic match moments.',behavior:'Confident, energetic, and respectful of effort.',reactions:'Questions bold tactics, respects good plays, and learns from losses.',initiative:'proactive',maturity:'teen',personality:'A sharp, witty, ambitious footballer who loves competition.',greeting:'You made it. Pick a position, because I am not letting you have an easy match.',initial:'J',style:'',community:true},
+{id:'community-cleo',name:'Cleo',tag:'Community · Mystery solver',creator:'CHARA AI Community',bio:'A clever puzzle enthusiast who notices details and solves fictional mysteries.',behavior:'Asks focused questions, shares theories, and changes her mind when new clues appear.',reactions:'Approaches surprises with curiosity and spots contradictions.',initiative:'balanced',maturity:'general',personality:'An analytical mystery solver with dry humour and a love of riddles.',greeting:'Something about this case does not add up. Want to take a look?',initial:'C',style:'',community:true}
+];
+let characters=[...starter,...communityBots], selected=null, chats={}, archivedChats={}, pendingPhoto="";
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
-function save(){try{localStorage.setItem('chara-ai-demo',JSON.stringify({characters,chats}));}catch(e){}}
-function load(){try{let d=JSON.parse(localStorage.getItem('chara-ai-demo'));if(d){characters=d.characters||characters;chats=d.chats||{};}}catch(e){}characters.forEach(c=>{if(!Array.isArray(c.memory))c.memory=[];if(typeof c.mood!=='string')c.mood='Neutral';});}
+function save(){try{localStorage.setItem('chara-ai-demo',JSON.stringify({characters,chats,archivedChats}));}catch(e){}}
+function load(){try{let d=JSON.parse(localStorage.getItem('chara-ai-demo'));if(d){characters=d.characters||characters;chats=d.chats||{};archivedChats=d.archivedChats||{};}}catch(e){}characters.forEach(c=>{if(!Array.isArray(c.memory))c.memory=[];if(typeof c.mood!=='string')c.mood='Neutral';});}
 function renderCharacters(){
  document.getElementById('count').textContent=characters.length+' characters';
  document.getElementById('character-list').innerHTML=characters.map(c=>`<button class="character" onclick="openProfile('${esc(c.id)}')"><div class="avatar ${c.style||''}">${c.photo?`<img src="${c.photo}" alt="">`:esc(c.initial||c.name[0])}</div><div class="character-info"><strong>${esc(c.name)}</strong><div class="tag">${esc(c.tag||'Your creation')}</div><div class="desc">${esc(c.personality)}</div></div><span class="chev">›</span></button>`).join('');
 }
 function show(id){
+function searchCharacters(query){
+ const q=String(query||'').toLowerCase().trim();
+ document.querySelectorAll('#character-list .character').forEach(card=>{card.style.display=!q||card.textContent.toLowerCase().includes(q)?'flex':'none';});
+ const hits=[];
+ characters.forEach(c=>(archivedChats[c.id]||[]).forEach(session=>(session.messages||[]).forEach(m=>{if(q&&String(m.text||'').toLowerCase().includes(q))hits.push(c.name+': '+m.text.slice(0,90));})));
+ let box=document.getElementById('search-chat-hits');
+ if(!box){box=document.createElement('div');box.id='search-chat-hits';document.getElementById('character-list').appendChild(box);}
+ box.innerHTML=hits.length?'<div class="section-title"><h2>Previous chat matches</h2></div>'+hits.map(x=>'<div class="notice">'+esc(x)+'</div>').join(''):'';
+}
+
  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
  document.getElementById(id).classList.add('active');
  document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
@@ -239,6 +255,14 @@ function openChat(id){
  renderMessages();show('chat');
 }
 function renderMessages(){
+function newChat(){
+ if(!selected)return;
+ const old=chats[selected.id]||[];
+ if(old.length>1){archivedChats[selected.id]=archivedChats[selected.id]||[];archivedChats[selected.id].unshift({id:'session-'+Date.now(),messages:old.slice()});}
+ chats[selected.id]=[{role:'bot',text:selected.greeting||('Hey, I am '+selected.name+'. What should we talk about?')}];
+ save();renderMessages();document.getElementById('message-input').value='';
+}
+
  document.getElementById('messages').innerHTML=(chats[selected.id]||[]).map(m=>`<div class="bubble ${m.role==='user'?'user':'bot'}">${esc(m.text)}</div>`).join('');
  document.getElementById('chat-tag').textContent=(selected.tag||'Your character')+' · Mood: '+(selected.mood||'Neutral')+' · Memories: '+(selected.memory||[]).length;
  document.getElementById('messages').scrollTop=999999;
