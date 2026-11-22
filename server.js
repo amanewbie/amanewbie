@@ -28,8 +28,7 @@ app.use(express.json({ limit: "120kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.get("/", (_req, res) => {
-  res.sendFile(path.join(__dirname, "public.html"));
-});
+  res.sendFile(path.join(__dirname, "public(1)-1.html"));
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, configured: Boolean(client) });
