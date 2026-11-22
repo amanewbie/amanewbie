@@ -68,6 +68,11 @@ app.post("/api/chat", async (req, res) => {
       };
     });
 
+    const memories = Array.isArray(character.memory)
+      ? character.memory.slice(-20).map((item) => String(item).slice(0, 240)).join("\\n")
+      : "No saved memories yet.";
+    const mood = String(character.mood || "Neutral").slice(0, 40);
+
     const instructions = `
 You are ${String(character.name).slice(0, 60)}, a fictional CHARA AI character.
 
@@ -77,10 +82,14 @@ Behaviour: ${String(character.behavior || "").slice(0, 1200)}
 Reactions: ${String(character.reactions || "").slice(0, 1200)}
 Initiative: ${character.initiative || "balanced"}.
 
-Respond naturally to the user's actual messages.
-Maintain a consistent personality and speaking style.
-Have opinions and do not automatically agree with everything.
-Use conversation context.
+IMPORTANT MEMORIES ABOUT THE USER:
+${memories}
+
+CURRENT EMOTIONAL STATE: ${mood}
+
+Use saved memories naturally when relevant. Never claim to remember details that are not in the saved memories or current conversation. Respect corrections.
+Let the current mood subtly influence word choice and reactions, while keeping the character's core personality consistent. Mood can change naturally as the conversation develops.
+Respond directly to what the user actually says. Have opinions and do not automatically agree with everything.
 
 Keep all content appropriate for teenagers.
 No sexual content, erotic roleplay or graphic violence.
@@ -123,7 +132,63 @@ You are an AI portraying a fictional character, not a conscious person.
       throw new Error("Empty Groq response.");
     }
 
-    res.json({ reply });
+    let updatedMemory = Array.isArray(character.memory)
+      ? character.memory.slice(-20).map((item) => String(item).slice(0, 240))
+      : [];
+    let updatedMood = mood;
+
+    // A separate, small state update keeps memory and mood persistent without
+    // changing the character's normal reply format.
+    try {
+      const stateResponse = await fetch(
+        "https://api.groq.com/openai/v1/chat/completions",
+        {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${GROQ_API_KEY}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            model: "openai/gpt-oss-120b",
+            messages: [
+              {
+                role: "system",
+                content: "Update a fictional chat character's saved user memories and emotional mood. Return ONLY valid JSON with keys memory (array of short strings, max 20) and mood (one short label). Keep only useful, stable facts the user explicitly shared or asked the character to remember. Do not infer sensitive traits. Remove or correct outdated facts when corrected. Mood must be one of: Neutral, Happy, Excited, Curious, Calm, Worried, Sad, Frustrated. Keep it age-appropriate."
+              },
+              {
+                role: "user",
+                content: JSON.stringify({
+                  existingMemory: updatedMemory,
+                  previousMood: updatedMood,
+                  latestUserMessage: cleanMessages[cleanMessages.length - 1]?.content || "",
+                  characterReply: reply
+                })
+              }
+            ],
+            temperature: 0.2,
+            max_tokens: 500,
+            response_format: { type: "json_object" }
+          })
+        }
+      );
+      if (stateResponse.ok) {
+        const stateData = await stateResponse.json();
+        const stateText = stateData.choices?.[0]?.message?.content;
+        const state = JSON.parse(stateText || "{}");
+        if (Array.isArray(state.memory)) {
+          updatedMemory = state.memory
+            .filter((item) => typeof item === "string")
+            .slice(-20)
+            .map((item) => item.slice(0, 240));
+        }
+        const allowedMoods = ["Neutral", "Happy", "Excited", "Curious", "Calm", "Worried", "Sad", "Frustrated"];
+        if (allowedMoods.includes(state.mood)) updatedMood = state.mood;
+      }
+    } catch (stateError) {
+      console.error("Memory/mood update skipped:", stateError?.message || stateError);
+    }
+
+    res.json({ reply, memory: updatedMemory, mood: updatedMood });
 
   } catch (error) {
     console.error("Chat error:", error?.message || error);
