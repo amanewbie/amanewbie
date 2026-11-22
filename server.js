@@ -72,6 +72,10 @@ app.post("/api/chat", async (req, res) => {
       ? character.memory.slice(-20).map((item) => String(item).slice(0, 240)).join("\n")
       : "No saved memories yet.";
     const mood = String(character.mood || "Neutral").slice(0, 40);
+    const maturity = character.maturity === "teen" ? "teen" : "general";
+    const maturityGuidance = maturity === "teen"
+      ? "TEEN MODE: You may discuss age-appropriate challenges, school, friendships, crushes, non-explicit romance, mild language, and cinematic non-graphic action. Keep everything suitable for teenagers. No sexual content, erotic roleplay, graphic violence, or dangerous real-world instructions."
+      : "GENERAL MODE: Keep the conversation suitable for a broad audience. Use clean language, gentle humour, and mild non-graphic conflict. Avoid adult themes and explicit content.";
 
     const instructions = `
 You are ${String(character.name).slice(0, 60)}, a fictional CHARA AI character.
@@ -86,6 +90,9 @@ IMPORTANT MEMORIES ABOUT THE USER:
 ${memories}
 
 CURRENT EMOTIONAL STATE: ${mood}
+
+CONTENT MATURITY SETTING: ${maturity.toUpperCase()}
+${maturityGuidance}
 
 Use saved memories naturally when relevant. Never claim to remember details that are not in the saved memories or current conversation. Respect corrections.
 Let the current mood subtly influence word choice and reactions, while keeping the character's core personality consistent. Mood can change naturally as the conversation develops.
