@@ -255,7 +255,6 @@ function openChat(id){
  chatAvatar.innerHTML=selected.photo?`<img src="${selected.photo}" alt="">`:esc(selected.initial||selected.name[0]);
  renderMessages();show('chat');
 }
-function renderMessages(){
 function newChat(){
  if(!selected)return;
  const old=chats[selected.id]||[];
@@ -263,7 +262,7 @@ function newChat(){
  chats[selected.id]=[{role:'bot',text:selected.greeting||('Hey, I am '+selected.name+'. What should we talk about?')}];
  save();renderMessages();document.getElementById('message-input').value='';
 }
-
+function renderMessages(){
  document.getElementById('messages').innerHTML=(chats[selected.id]||[]).map(m=>`<div class="bubble ${m.role==='user'?'user':'bot'}">${esc(m.text)}</div>`).join('');
  document.getElementById('chat-tag').textContent=(selected.tag||'Your character')+' · Mood: '+(selected.mood||'Neutral')+' · Memories: '+(selected.memory||[]).length;
  document.getElementById('messages').scrollTop=999999;
