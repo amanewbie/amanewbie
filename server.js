@@ -14,7 +14,9 @@ const client = process.env.OPENAI_API_KEY
   : null;
 
 app.use(express.json({ limit: "120kb" }));
-app.use(express.static(path.join(__dirname, "public")));
+app.get("/", (_req, res) => {
+  res.sendFile(path.join(__dirname, "public.html"));
+});
 
 app.get("/api/health", (_req, res) => {
   res.json({ ok: true, configured: Boolean(client) });
