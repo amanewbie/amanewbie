@@ -76,7 +76,7 @@ input,textarea{width:100%;background:var(--panel);border:1px solid var(--line);b
  <select id="char-initiative" class="select-field"><option value="balanced">Balanced — sometimes leads the conversation</option><option value="proactive">Proactive — often starts topics and asks questions</option><option value="reserved">Reserved — mostly responds when spoken to</option></select>
  <label class="field-label" for="char-maturity">CONTENT MATURITY</label>
  <select id="char-maturity" class="select-field"><option value="general">General — all audiences</option><option value="teen">Teen — age-appropriate themes and language</option><option value="restricted" disabled>18+ — unavailable in this version</option></select>
- <p class="notice">Maturity settings do not enable explicit sexual content or graphic violence.</p>
+ <p class="notice">General is suitable for all audiences. Teen allows more nuanced age-appropriate themes, but still excludes sexual content, erotic roleplay, and graphic violence. An 18+ mode is not available.</p>
  <label class="field-label" for="char-greeting">FIRST MESSAGE (OPTIONAL)</label><textarea id="char-greeting" maxlength="500" style="min-height:75px" placeholder="What does your character say first?"></textarea>
  <label class="field-label" for="char-photo">PROFILE PHOTO</label>
  <div class="photo-picker">
@@ -191,7 +191,7 @@ function openProfile(id){
  document.getElementById('profile-reactions').textContent=selected.reactions||'Reaction guidelines have not been added.';
  const initiativeLabels={balanced:'Balanced — sometimes leads the conversation',proactive:'Proactive — often starts topics and asks questions',reserved:'Reserved — mostly responds when spoken to'};
  document.getElementById('profile-initiative').textContent=initiativeLabels[selected.initiative||'balanced'];
- document.getElementById('profile-maturity').textContent=selected.maturity==='teen'?'Teen — age-appropriate themes and language':'General — all audiences';
+ document.getElementById('profile-maturity').textContent=selected.maturity==='teen'?'Teen — age-appropriate themes, language and non-graphic action':'General — suitable for all audiences';
  const avatar=document.getElementById('profile-avatar');
  avatar.innerHTML=selected.photo?`<img src="${selected.photo}" alt="">`:esc(selected.initial||selected.name[0]);
  renderGallery();show('profile');
