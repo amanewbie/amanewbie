@@ -1,5 +1,5 @@
+
 import express from "express";
-import OpenAI from "openai";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import dotenv from "dotenv";
@@ -10,45 +10,34 @@ const app = express();
 const PORT = Number(process.env.PORT || 3000);
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
-const client = process.env.OPENAI_API_KEY
-  ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY })
-  : null;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
-// CORS
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
 
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(204);
-  }
-
+  if (req.method === "OPTIONS") return res.sendStatus(204);
   next();
 });
 
 app.use(express.json({ limit: "120kb" }));
 app.use(express.static(path.join(__dirname, "public")));
 
-// Homepage
 app.get("/", (_req, res) => {
   res.sendFile(path.join(__dirname, "public(1)-1.html"));
 });
 
-// Health check
 app.get("/api/health", (_req, res) => {
   res.json({
     ok: true,
-    configured: Boolean(client)
+    configured: Boolean(GROQ_API_KEY)
   });
 });
 
-// AI chat
 app.post("/api/chat", async (req, res) => {
-  if (!client) {
-    return res.status(503).json({
-      error: "API key is not configured."
-    });
+  if (!GROQ_API_KEY) {
+    return res.status(503).json({ error: "Groq API key is missing." });
   }
 
   try {
@@ -61,9 +50,7 @@ app.post("/api/chat", async (req, res) => {
       messages.length < 1 ||
       messages.length > 24
     ) {
-      return res.status(400).json({
-        error: "Invalid character or messages."
-      });
+      return res.status(400).json({ error: "Invalid character or messages." });
     }
 
     const cleanMessages = messages.map((m) => {
@@ -88,13 +75,12 @@ Bio: ${String(character.bio || "").slice(0, 1200)}
 Personality: ${String(character.personality || "").slice(0, 1600)}
 Behaviour: ${String(character.behavior || "").slice(0, 1200)}
 Reactions: ${String(character.reactions || "").slice(0, 1200)}
+Initiative: ${character.initiative || "balanced"}.
 
-Respond to the user's actual message.
-Use the conversation context.
+Respond naturally to the user's actual messages.
 Maintain a consistent personality and speaking style.
 Have opinions and do not automatically agree with everything.
-Remember details from this conversation.
-Initiative: ${character.initiative || "balanced"}.
+Use conversation context.
 
 Keep all content appropriate for teenagers.
 No sexual content, erotic roleplay or graphic violence.
@@ -102,16 +88,39 @@ Do not provide instructions for dangerous real-world activities.
 You are an AI portraying a fictional character, not a conscious person.
 `;
 
-    const response = await client.responses.create({
-      model: process.env.OPENAI_MODEL || "gpt-5.5",
-      instructions,
-      input: cleanMessages
-    });
+    const response = await fetch(
+      "https://api.groq.com/openai/v1/chat/completions",
+      {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${GROQ_API_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          model: "llama-3.3-70b-versatile",
+          messages: [
+            { role: "system", content: instructions },
+            ...cleanMessages
+          ],
+          temperature: 0.8,
+          max_tokens: 1000
+        })
+      }
+    );
 
-    const reply = response.output_text?.trim();
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Groq error:", data);
+      return res.status(response.status).json({
+        error: data.error?.message || "Groq request failed."
+      });
+    }
+
+    const reply = data.choices?.[0]?.message?.content?.trim();
 
     if (!reply) {
-      throw new Error("Empty AI response.");
+      throw new Error("Empty Groq response.");
     }
 
     res.json({ reply });
@@ -125,7 +134,6 @@ You are an AI portraying a fictional character, not a conscious person.
   }
 });
 
-// Start server
 app.listen(PORT, () => {
-  console.log("CHARA AI server running on port " + PORT);
+  console.log("CHARA AI Groq server running on port " + PORT);
 });
