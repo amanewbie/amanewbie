@@ -132,7 +132,7 @@ const communityBots=[
 let characters=[...starter,...communityBots], selected=null, chats={}, archivedChats={}, pendingPhoto="";
 function esc(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function save(){try{localStorage.setItem('chara-ai-demo',JSON.stringify({characters,chats,archivedChats}));}catch(e){}}
-function load(){try{let d=JSON.parse(localStorage.getItem('chara-ai-demo'));if(d){characters=d.characters||characters;chats=d.chats||{};archivedChats=d.archivedChats||{};}}catch(e){}characters.forEach(c=>{if(!Array.isArray(c.memory))c.memory=[];if(typeof c.mood!=='string')c.mood='Neutral';});}
+function load(){try{let d=JSON.parse(localStorage.getItem('chara-ai-demo'));if(d){characters=d.characters||characters;chats=d.chats||{};archivedChats=d.archivedChats||{};communityBots.forEach(bot=>{if(!characters.some(c=>c.id===bot.id))characters.push(bot);});}}catch(e){}characters.forEach(c=>{if(!Array.isArray(c.memory))c.memory=[];if(typeof c.mood!=='string')c.mood='Neutral';});}
 function renderCharacters(){
  document.getElementById('count').textContent=characters.length+' characters';
  document.getElementById('character-list').innerHTML=characters.map(c=>`<button class="character" onclick="openProfile('${esc(c.id)}')"><div class="avatar ${c.style||''}">${c.photo?`<img src="${c.photo}" alt="">`:esc(c.initial||c.name[0])}</div><div class="character-info"><strong>${esc(c.name)}</strong><div class="tag">${esc(c.tag||'Your creation')}</div><div class="desc">${esc(c.personality)}</div></div><span class="chev">›</span></button>`).join('');
@@ -143,6 +143,7 @@ function searchCharacters(query){
  document.querySelectorAll('#character-list .character').forEach(card=>{card.style.display=!q||card.textContent.toLowerCase().includes(q)?'flex':'none';});
  const hits=[];
  characters.forEach(c=>(archivedChats[c.id]||[]).forEach(session=>(session.messages||[]).forEach(m=>{if(q&&String(m.text||'').toLowerCase().includes(q))hits.push(c.name+': '+m.text.slice(0,90));})));
+ characters.forEach(c=>{const m=(chats[c.id]||[]).find(x=>String(x.text||'').toLowerCase().includes(q));if(q&&m)hits.push(c.name+' (current): '+m.text.slice(0,90));});
  let box=document.getElementById('search-chat-hits');
  if(!box){box=document.createElement('div');box.id='search-chat-hits';document.getElementById('character-list').appendChild(box);}
  box.innerHTML=hits.length?'<div class="section-title"><h2>Previous chat matches</h2></div>'+hits.map(x=>'<div class="notice">'+esc(x)+'</div>').join(''):'';
